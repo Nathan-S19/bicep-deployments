@@ -2,15 +2,13 @@ param location string = 'eastus'
 param storageAccountName string = 'newstorage${uniqueString(resourceGroup().id)}'
 param appServiceAppName string = 'appserviceplan${uniqueString(resourceGroup().id)}'
 
-var appServicePlanName = 'mynewappserviceplan17729'
-var storageAccountSkuName = (environmentType == 'prod') ? 'Standard_GRS' : 'Standard_LRS'
-var appServicePlanSkuName = (environmentType == 'prod') ? 'P2v3' : 'F1'
-
 @allowed([
   'prod'
   'nonprod'
 ])
 param environmentType string
+
+var storageAccountSkuName = (environmentType == 'prod') ? 'Standard_GRS' : 'Standard_LRS'
 
 resource storageAccount 'Microsoft.Storage/storageAccounts@2022-09-01' = {
   name: storageAccountName
@@ -24,19 +22,13 @@ resource storageAccount 'Microsoft.Storage/storageAccounts@2022-09-01' = {
   }
 }
 
-resource appServicePlan 'Microsoft.Web/serverfarms@2021-03-01' = {
-  name: appServicePlanName
-  location: location
-  sku: {
-    name: appServicePlanSkuName
+module appService 'modules/appService.bicep' = {
+  name: 'appService'
+  params:{
+    location: location
+    appServiceAppName: appServiceAppName
+    environmentType: environmentType
   }
 }
 
-resource appServiceApp 'Microsoft.Web/sites@2022-03-01' = {
-  name: appServiceAppName
-  location: location
-  properties: {
-    serverFarmId: appServicePlan.id
-    httpsOnly: true
-  }
-}
+output appServiceAppHostName string = appService.outputs.appServiceAppHostName
